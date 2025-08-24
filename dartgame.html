@@ -1,0 +1,66 @@
+<!doctype html>
+ctx.moveTo(center,center); ctx.arc(center,center, center*0.198/0.225, a0,a1); ctx.closePath(); ctx.fill();
+
+
+// Triple ring
+ctx.beginPath();
+ctx.fillStyle = i%2? '#19a45a' : '#b4222a';
+ctx.moveTo(center,center); ctx.arc(center,center, center*0.126/0.225, a0,a1); ctx.arc(center,center, center*0.114/0.225, a1,a0,true); ctx.closePath(); ctx.fill();
+
+
+// Outer single
+ctx.beginPath();
+ctx.fillStyle = i%2? '#e2e2e2' : '#1f1f1f';
+ctx.moveTo(center,center); ctx.arc(center,center, center*0.198/0.225, a0,a1); ctx.arc(center,center, center*0.126/0.225, a1,a0,true); ctx.closePath(); ctx.fill();
+
+
+// Double ring
+ctx.beginPath();
+ctx.fillStyle = i%2? '#19a45a' : '#b4222a';
+ctx.moveTo(center,center); ctx.arc(center,center, center*0.225/0.225, a0,a1); ctx.arc(center,center, center*0.21/0.225, a1,a0,true); ctx.closePath(); ctx.fill();
+}
+// Bulls
+ctx.beginPath(); ctx.fillStyle='#19a45a'; ctx.arc(center,center,size*0.064,0,Math.PI*2); ctx.fill();
+ctx.beginPath(); ctx.fillStyle='#f5f5f5'; ctx.arc(center,center,size*0.032,0,Math.PI*2); ctx.fill();
+
+
+// Outer rim
+ctx.lineWidth=8; ctx.strokeStyle='#111'; ctx.beginPath(); ctx.arc(center,center,center-4,0,Math.PI*2); ctx.stroke();
+return new THREE.CanvasTexture(cv);
+}
+
+
+const boardTex = makeDartboardTexture(1024); boardTex.anisotropy = 8; boardTex.colorSpace=THREE.SRGBColorSpace;
+const boardGeo = new THREE.CylinderGeometry(boardRadius, boardRadius, boardThickness, 64);
+const boardMat = new THREE.MeshStandardMaterial({map:boardTex, metalness:0.1, roughness:0.8});
+const boardMesh = new THREE.Mesh(boardGeo, boardMat); boardMesh.castShadow=true; boardMesh.receiveShadow=true;
+boardMesh.rotation.x = Math.PI/2; // face towards camera
+boardMesh.position.set(0, 1.6, -0.02);
+scene.add(boardMesh);
+
+
+// Board physics (thin box to catch contacts)
+const boardBody = new CANNON.Body({ mass: 0, material: matDefault });
+boardBody.addShape(new CANNON.Box(new CANNON.Vec3(boardRadius, boardRadius, 0.01)));
+boardBody.position.set(0,1.6,0);
+world.addBody(boardBody);
+
+
+// --- Dart (mesh + body) ---
+function createDart(){
+const group = new THREE.Group();
+// shaft
+const shaft = new THREE.Mesh(
+new THREE.CylinderGeometry(0.005,0.005,0.18,16),
+new THREE.MeshStandardMaterial({color:0xd6dde7, metalness:0.7, roughness:0.2})
+);
+shaft.position.y = 0.09; group.add(shaft);
+// tip
+const tip = new THREE.Mesh(
+new THREE.ConeGeometry(0.006,0.03,16),
+new THREE.MeshStandardMaterial({color:0x9aa4af, metalness:0.8, roughness:0.3})
+);
+tip.position.y = 0.0; tip.rotation.x = Math.PI; group.add(tip);
+// flights
+const flightGeo = new THREE.BoxGeometry(0.03,0.02,0.002);
+const flightMat = new THREE.MeshStandardMaterial({color:0x7aa2ff, metalness:0.3, roughness:0.5});
