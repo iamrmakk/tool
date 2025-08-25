@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MovieBox - Stream Your Favorite Movies</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #0f0f1e;
+            color: #ffffff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+            padding: 20px 0;
+            position: fixed;
+            width: 100%;
+            z-index: 100;
+            transition: background 0.3s ease;
+        }
+
+        header.scrolled {
+            background: #0f0f1e;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            color: #e50914;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo i {
+            margin-right: 10px;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+
+        nav ul li {
+            margin-left: 25px;
+        }
+
+        nav ul li a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+        }
+
+        nav ul li a:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background-color: #e50914;
+            transition: width 0.3s;
+        }
+
+        nav ul li a:hover:after {
+            width: 100%;
+        }
+
+        nav ul li a:hover {
+            color: #e50914;
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-box {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            color: white;
+            width: 250px;
+            margin-right: 15px;
+        }
+
+        .search-btn {
+            background: #e50914;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .search-btn:hover {
+            background: #f40612;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 80vh;
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://source.unsplash.com/random/1600x900/?cinema') no-repeat center center/cover;
+            display: flex;
+            align-items: center;
+            padding-top: 80px;
+        }
+
+        .hero-content {
+            max-width: 650px;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn-play {
+            background: #e50914;
+            color: #ffffff;
+            padding: 12px 30px;
+            border-radius: 4px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .btn-play i {
+            margin-right: 10px;
+        }
+
+        .btn-info {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 12px 30px;
+            border-radius: 4px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .btn-info i {
+            margin-right: 10px;
+        }
+
+        /* Content Sections */
+        .section-title {
+            font-size: 1.8rem;
+            margin: 40px 0 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title i {
+            margin-right: 10px;
+            color: #e50914;
+        }
+
+        .movie-row {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding: 10px 0;
+            scrollbar-width: thin;
+            scrollbar-color: #e50914 #0f0f1e;
+        }
+
+        .movie-row::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .movie-row::-webkit-scrollbar-thumb {
+            background: #e50914;
+            border-radius: 8px;
+        }
+
+        .movie-card {
+            min-width: 250px;
+            height: 150px;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+
+        .movie-card:hover {
+            transform: scale(1.05);
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .movie-card-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            padding: 15px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .movie-card:hover .movie-card-overlay {
+            opacity: 1;
+        }
+
+        .movie-card-title {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .movie-card-info {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Ad Section */
+        .ad-section {
+            background: linear-gradient(to right, #1a1a2e, #16213e);
+            padding: 40px 0;
+            margin: 50px 0;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+        .ad-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .ad-title {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #e50914;
+        }
+
+        .ad-text {
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .ad-button {
+            background: #e50914;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        /* Footer */
+        footer {
+            background: #080811;
+            padding: 50px 0 20px;
+            margin-top: 50px;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 30px;
+        }
+
+        .footer-column {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .footer-column h3 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #e50914;
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-column ul li a {
+            color: #ffffff;
+            text-decoration: none;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .footer-column ul li a:hover {
+            opacity: 1;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .social-icons a {
+            color: #ffffff;
+            font-size: 1.2rem;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .social-icons a:hover {
+            opacity: 1;
+        }
+
+        .copyright {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            nav ul {
+                margin: 20px 0;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .movie-card {
+                min-width: 200px;
+                height: 120px;
+            }
+            
+            .search-box {
+                width: 200px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            nav ul li {
+                margin-left: 15px;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+            
+            .search-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .search-box {
+                width: 100%;
+                margin-right: 0;
+            }
+        }
+
+        /* Movie Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: #1a1a2e;
+            margin: 50px auto;
+            max-width: 1000px;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            color: #ffffff;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-poster {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+        }
+
+        .modal-title {
+            font-size: 2rem;
+            margin: 20px 0 10px;
+        }
+
+        .modal-info {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        .modal-description {
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo">
+                    <i class="fas fa-play-circle"></i>
+                    MOVIEBOX
+                </a>
+                <nav>
+                    <ul>
+                        <li><a href="#">HOME</a></li>
+                        <li><a href="#">CATEGORIES</a></li>
+                        <li><a href="#">CONTACT</a></li>
+                    </ul>
+                </nav>
+                <div class="search-container">
+                    <input type="text" class="search-box" placeholder="Search movies...">
+                    <button class="search-btn">Search</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Unlimited Movies, TV Shows, and More</h1>
+                <p>Watch anywhere. Cancel anytime. Ready to watch? Enter your email to create or restart your membership.</p>
+                <div class="hero-buttons">
+                    <a href="#" class="btn-play">
+                        <i class="fas fa-play"></i> Play Now
+                    </a>
+                    <a href="#" class="btn-info">
+                        <i class="fas fa-info-circle"></i> More Info
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Hindi Movies -->
+        <h2 class="section-title">
+            <i class="fas fa-film"></i> HINDI MOVIES
+        </h2>
+        <div class="movie-row">
+            <div class="movie-card" data-movie="1">
+                <img src="https://source.unsplash.com/random/300x450/?bollywood" alt="Hindi Movie">
+                <div class="movie-card-overlay">
+                    <div class="movie-card-title">Bollywood Hit</div>
+                    <div class="movie-card-info">
+                        <span>2023</span>
+                        <span>120 min</span>
+                    </div>
+                </div>
+            </div>
+            <div class="movie-card" data-movie="2">
+                <img src="https://source.unsplash.com/random/300x450/?indian" alt="Hindi Movie">
+                <div class="movie-card-overlay">
+                    <div class="movie-card-title">Indian Drama</div>
+                    <div class="movie-card-info">
+                        <span>2023</span>
+                        <span>115 min</span>
+                    </div>
+                </div>
+            </div>
+            <div class="movie-card" data-movie="3">
+                <img src="https://source.unsplash.com/random/300x450/?india" alt="Hindi Movie">
+                <div class="movie-card-overlay">
+                    <div class="movie-card-title">Action Thriller</div>
+                    <div class="movie-card-info">
+                        <span>2023</span>
+                        <span>138 min</span>
+                    </div>
+                </div>
+            </div>
+            <div class="movie-card" data-movie="4">
+                <img src="https://source.unsplash.com/random/300x450/?mumbai" alt="Hindi Movie">
+                <div class="movie-card-overlay">
+                    <div class="movie-card-title">Mumbai Stories</div>
+                    <div class="movie-card-info">
+                        <span>2023</span>
+                        <span>105 min</span>
+                    </div>
+                </div>
+            </div>
+            <div class="movie-card" data-movie="5">
+                <img src="https://source.unsplash.com/random/300x450/?delhi" alt="Hindi Movie">
+                <div class="movie-card-overlay">
+                    <div class="movie-card-title">Delhi Nights</div>
+                    <div class="movie-card-info">
+                        <span>2023</span>
+                        <span>98 min</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- English Movies -->
+        <h2 class="section-title">
+            <i class="fas fa-film"></i> ENGLISH MOVIES
+        </h2>
+        <div class="movie-row">
+            <div class="movie-card" data-movie="6">
+                <img src="https://source.unsplash.com/random/300x450/?hollywood" alt="English Movie">
+                <div class="movie-card-overlay">
+                    <div class="movie-card-title">Hollywood Blockbuster</div>
+                    <div class="movie-card-info">
+                        <span>2023</span>
+                        <span>126 min</span>
+                    </div>
+                </div>
+            </div>
+            <div class="movie-card" data-movie="7">
+                <img src="https://source.unsplash.com/random/300x450/?american" alt="English Movie">
+                <div class="movie-card-overlay">
+                    <div class="movie-card-title">American Classic</div>
+                    <div class="movie-card-info">
+                        <span>2023</span>
+                        <span>112 min</span>
+                    </div>
+                </div>
+            </div>
+            <div class="movie-card" data-movie="8">
+                <img src="https://source.unsplash.com/random/300x450/?london" alt="English Movie">
+                <div class="movie-card-overlay">
+                    <div class="movie-card-title">London Calling</div>
+                    <div class="movie-card-info">
+                        <span>2023</span>
+                        <span>134 min</span>
+                    </div>
+                </div>
+            </div>
+            <div class="movie-card" data-movie="9">
+                <img src="https://source.unsplash.com/random/300x450/?newyork" alt="English Movie">
+                <div class="movie-card-overlay">
+                    <div class="movie-card-title">New York Stories</div>
+                    <div class="movie-card-info">
+                        <span>2023</span>
+                        <span>92 min</span>
+                    </div>
+                </div>
+            </div>
+            <div class="movie-card" data-movie="10">
+                <img src="https://source.unsplash.com/random/300x450/?california" alt="English Movie">
+                <div class="movie-card-overlay">
+                    <div class="movie-card-title">California Dreams</div>
+                    <div class="movie-card-info">
+                        <span>2023</span>
+                        <span>106 min</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ad Section -->
+        <div class="ad-section">
+            <div class="ad-content">
+                <h2 class="ad-title">SPECIAL OFFER</h2>
+                <p class="ad-text">Subscribe now and get 3 months free! Unlimited access to thousands of movies and TV shows.</p>
+                <a href="#" class="ad-button">Subscribe Now</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>MOVIEBOX</h3>
+                    <p>Your ultimate destination for streaming the latest movies and TV shows in high quality.</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h3>Navigation</h3>
+                    <ul>
+                        <li><a href="#">Home</a></li>
+                        <li><a href="#">Categories</a></li>
+                        <li><a href="#">Hindi Movies</a></li>
+                        <li><a href="#">English Movies</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Support</h3>
+                    <ul>
+                        <li><a href="#">FAQ</a></li>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Account</a></li>
+                        <li><a href="#">Media Center</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Legal</h3>
+                    <ul>
+                        <li><a href="#">Terms and Conditions</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Cookie Preferences</a></li>
+                        <li><a href="#">Corporate Information</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2023 MOVIEBOX. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Movie Modal -->
+    <div class="modal" id="movieModal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeModal">&times;</span>
+            <div class="modal-body">
+                <img src="" alt="Movie Poster" class="modal-poster" id="modalPoster">
+                <h2 class="modal-title" id="modalTitle">Movie Title</h2>
+                <div class="modal-info" id="modalInfo">
+                    <span>2023</span>
+                    <span>120 min</span>
+                    <span>4.5★</span>
+                </div>
+                <p class="modal-description" id="modalDescription">
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam at mauris vel nibh aliquam ultrices. 
+                    Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eget aliquam nisl nisl sit amet nisl.
+                </p>
+                <div class="modal-actions">
+                    <a href="#" class="btn-play">
+                        <i class="fas fa-play"></i> Play Now
+                    </a>
+                    <a href="#" class="btn-info">
+                        <i class="fas fa-plus"></i> Add to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Header scroll effect
+        window.addEventListener('scroll', function() {
+            const header = document.querySelector('header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // Movie modal functionality
+        const movieCards = document.querySelectorAll('.movie-card');
+        const modal = document.getElementById('movieModal');
+        const closeModal = document.getElementById('closeModal');
+        const modalPoster = document.getElementById('modalPoster');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalInfo = document.getElementById('modalInfo');
+        const modalDescription = document.getElementById('modalDescription');
+
+        movieCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const movieId = this.getAttribute('data-movie');
+                // In a real app, you would fetch movie data based on the ID
+                // For this example, we'll use placeholder data
+                
+                // Set modal content based on the clicked movie
+                modalPoster.src = this.querySelector('img').src;
+                modalTitle.textContent = this.querySelector('.movie-card-title').textContent;
+                
+                // Show modal
+                modal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            });
+        });
+
+        // Close modal
+        closeModal.addEventListener('click', function() {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        });
+
+        // Search functionality
+        const searchBtn = document.querySelector('.search-btn');
+        const searchBox = document.querySelector('.search-box');
+        
+        searchBtn.addEventListener('click', function() {
+            if (searchBox.value.trim() !== '') {
+                alert(`Searching for: ${searchBox.value}`);
+                searchBox.value = '';
+            }
+        });
+        
+        searchBox.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && searchBox.value.trim() !== '') {
+                alert(`Searching for: ${searchBox.value}`);
+                searchBox.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
