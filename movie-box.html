@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MovieBox — Telegram Mini App</title>
+
+  <!-- Monetag meta for verification -->
+  <meta name="monetag" content="11a8d4a9aef2714708fde2a7545c6859">
+
+  <!-- Telegram Web App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Tailwind (for quick clean UI) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* small visual tweaks */
+    .glass { background: rgba(255,255,255,0.6); backdrop-filter: blur(6px); }
+  </style>
+</head>
+
+<!-- Place Monetag ad script *below the <head> tag* as requested -->
+<script src='//libtl.com/sdk.js' data-zone='9768747' data-sdk='show_9768747'></script>
+
+<body class="min-h-screen bg-gray-100 text-gray-800 flex flex-col">
+  <header class="bg-white shadow-sm py-4">
+    <div class="max-w-4xl mx-auto px-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">🎬 MovieBox</h1>
+        <p class="text-sm text-gray-500">Your personal movie hub — Hindi & English</p>
+      </div>
+      <div class="space-x-2">
+        <button id="openUploader" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm">Upload</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Ad area (Monetag) -->
+  <div class="max-w-4xl mx-auto px-4 mt-4">
+    <div id="ad-slot" class="w-full h-20 bg-gray-200 rounded-lg flex items-center justify-center text-sm text-gray-600">
+      <!-- Monetag will render here -->
+      Ad space
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <nav class="max-w-4xl mx-auto px-4 mt-6">
+    <div class="bg-white rounded-xl p-2 flex gap-2 glass">
+      <button class="flex-1 py-3 rounded-lg font-medium text-center" id="tab-hindi">Hindi</button>
+      <button class="flex-1 py-3 rounded-lg font-medium text-center" id="tab-english">English</button>
+    </div>
+  </nav>
+
+  <!-- Movie grid -->
+  <main class="max-w-4xl mx-auto px-4 py-6 flex-1 w-full">
+    <div id="moviesGrid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"></div>
+
+    <div id="emptyState" class="text-center text-gray-500 mt-12 hidden">
+      No movies yet. Upload your first movie using the Upload button.
+    </div>
+  </main>
+
+  <!-- Video modal -->
+  <div id="playerModal" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-60 z-40">
+    <div class="w-full max-w-3xl bg-white rounded-lg overflow-hidden">
+      <div class="flex justify-between items-center p-3 border-b">
+        <h3 id="playerTitle" class="font-semibold">Playing</h3>
+        <button id="closePlayer" class="text-gray-600">Close ✕</button>
+      </div>
+      <video id="playerVideo" controls class="w-full h-96 bg-black">Your browser does not support the video tag.</video>
+    </div>
+  </div>
+
+  <!-- Upload modal (owner only) -->
+  <div id="uploadModal" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-60 z-50">
+    <div class="w-full max-w-xl bg-white rounded-lg p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold">Upload Movie</h3>
+        <button id="closeUpload" class="text-gray-600">✕</button>
+      </div>
+
+      <form id="uploadForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Title</label>
+          <input id="title" type="text" required class="mt-1 block w-full border rounded-md p-2"/>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Language</label>
+          <select id="language" class="mt-1 block w-full border rounded-md p-2">
+            <option value="hindi">Hindi</option>
+            <option value="english">English</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Video file (MP4 / WebM)</label>
+          <input id="fileInput" type="file" accept="video/*" class="mt-1" required />
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md">Upload</button>
+          <div id="uploadStatus" class="text-sm text-gray-600"></div>
+        </div>
+
+        <p class="text-xs text-gray-500 mt-2">Uploads are stored on your server. Make sure you own the content you upload.</p>
+      </form>
+    </div>
+  </div>
+
+  <footer class="max-w-4xl mx-auto px-4 py-6 text-center text-sm text-gray-500">© MovieBox</footer>
+
+  <script>
+    // Basic UI logic + API calls
+    const API_BASE = location.origin; // adjust to your backend domain if different
+
+    const moviesGrid = document.getElementById('moviesGrid');
+    const emptyState = document.getElementById('emptyState');
+    const tabHindi = document.getElementById('tab-hindi');
+    const tabEnglish = document.getElementById('tab-english');
+    const playerModal = document.getElementById('playerModal');
+    const playerVideo = document.getElementById('playerVideo');
+    const playerTitle = document.getElementById('playerTitle');
+    const closePlayer = document.getElementById('closePlayer');
+
+    const uploadModal = document.getElementById('uploadModal');
+    const openUploader = document.getElementById('openUploader');
+    const closeUpload = document.getElementById('closeUpload');
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadStatus = document.getElementById('uploadStatus');
+
+    let currentLang = 'hindi';
+
+    async function fetchMovies() {
+      try {
+        const res = await fetch(API_BASE + '/movies');
+        const data = await res.json();
+        renderMovies(data);
+      } catch (err) {
+        console.error(err);
+        moviesGrid.innerHTML = '<div class="text-red-500">Failed to load movies</div>';
+      }
+    }
+
+    function renderMovies(list) {
+      const filtered = list.filter(m => m.language === currentLang);
+      moviesGrid.innerHTML = '';
+
+      if (!filtered.length) {
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      filtered.forEach(movie => {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-xl shadow overflow-hidden';
+        card.innerHTML = `
+          <div class="aspect-video bg-gray-900 flex items-center justify-center">
+            <img src="/thumbs/${encodeURIComponent(movie.filename)}.jpg" alt="thumb" class="object-cover w-full h-full" onerror="this.style.display='none'" />
+            <div class="p-4">
+              <h3 class="text-lg font-semibold">${escapeHtml(movie.title)}</h3>
+              <div class="mt-3 flex gap-2">
+                <button class="watchBtn bg-blue-600 text-white px-3 py-1 rounded" data-src="${movie.url}" data-title="${escapeHtml(movie.title)}">Watch</button>
+                <a class="bg-gray-100 px-3 py-1 rounded text-sm" href="${movie.url}" target="_blank" rel="noopener">Open</a>
+              </div>
+            </div>
+          </div>
+        `;
+        moviesGrid.appendChild(card);
+      });
+
+      // attach watch handlers
+      document.querySelectorAll('.watchBtn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const src = btn.dataset.src;
+          const title = btn.dataset.title;
+          openPlayer(src, title);
+        });
+      });
+    }
+
+    function openPlayer(src, title) {
+      playerVideo.src = src;
+      playerTitle.textContent = title;
+      playerModal.classList.remove('hidden');
+      playerModal.style.display = 'flex';
+      playerVideo.play().catch(()=>{});
+    }
+
+    closePlayer.addEventListener('click', () => {
+      playerVideo.pause();
+      playerVideo.src = '';
+      playerModal.classList.add('hidden');
+    });
+
+    // Tabs
+    tabHindi.addEventListener('click', () => { currentLang='hindi'; tabHindi.classList.add('text-blue-600'); tabEnglish.classList.remove('text-blue-600'); fetchMovies(); });
+    tabEnglish.addEventListener('click', () => { currentLang='english'; tabEnglish.classList.add('text-blue-600'); tabHindi.classList.remove('text-blue-600'); fetchMovies(); });
+
+    // Upload modal toggles
+    openUploader.addEventListener('click', () => { uploadModal.style.display = 'flex'; uploadModal.classList.remove('hidden'); });
+    closeUpload.addEventListener('click', () => { uploadModal.classList.add('hidden'); uploadModal.style.display = 'none'; uploadStatus.textContent=''; uploadForm.reset(); });
+
+    // Upload form
+    uploadForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      uploadStatus.textContent = 'Uploading...';
+
+      const title = document.getElementById('title').value.trim();
+      const language = document.getElementById('language').value;
+      const file = document.getElementById('fileInput').files[0];
+
+      if (!file) return uploadStatus.textContent = 'Please select a file.';
+
+      const form = new FormData();
+      form.append('title', title);
+      form.append('language', language);
+      form.append('video', file);
+
+      // If you want to protect uploads, send a secret key header (server checks it)
+      const secret = localStorage.getItem('MOVIEBOX_UPLOAD_KEY') || '';
+
+      try {
+        const res = await fetch(API_BASE + '/upload', {
+          method: 'POST',
+          body: form,
+          headers: secret ? { 'x-upload-key': secret } : {}
+        });
+        const data = await res.json();
+        if (res.ok) {
+          uploadStatus.textContent = 'Uploaded ✔';
+          fetchMovies();
+          setTimeout(()=>{ closeUpload.click(); }, 1000);
+        } else {
+          uploadStatus.textContent = data?.message || 'Upload failed';
+        }
+      } catch (err) {
+        console.error(err);
+        uploadStatus.textContent = 'Upload error';
+      }
+    });
+
+    // Utils
+    function escapeHtml(s){ return s.replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'":"&#39;'}[c]; }); }
+
+    // initial load
+    fetchMovies();
+
+    // Optional: call Monetag SDK if it requires a manual render point (depends on provider)
+    window.addEventListener('load', ()=>{
+      // If libtl requires initialization targeting a div, do it here.
+      // Example: window._libtl && window._libtl.render && window._libtl.render('ad-slot');
+    });
+  </script>
+</body>
+</html>
+
+
+
